@@ -1,0 +1,14 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+@plugin 'daisyui' {
+	themes:
+		winter --default,
+		night --prefersdark;
+	root: ':root';
+	include:;
+	exclude:;
+	prefix:;
+	logs: false;
+}
