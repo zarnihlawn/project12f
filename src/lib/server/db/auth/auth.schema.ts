@@ -1,13 +1,7 @@
 import { relations } from 'drizzle-orm';
-import {
-	pgTable,
-	text,
-	timestamp,
-	boolean,
-	index,
-} from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, index } from 'drizzle-orm/pg-core';
 
-export const AuthUserSchema = pgTable('user', {
+export const AuthUserSchema = pgTable('auth_user', {
 	id: text('id').primaryKey(),
 	name: text('name').notNull(),
 	email: text('email').notNull().unique(),
@@ -17,11 +11,11 @@ export const AuthUserSchema = pgTable('user', {
 	updatedAt: timestamp('updated_at')
 		.defaultNow()
 		.$onUpdate(() => /* @__PURE__ */ new Date())
-		.notNull(),
+		.notNull()
 });
 
 export const AuthSessionSchema = pgTable(
-	'session',
+	'auth_session',
 	{
 		id: text('id').primaryKey(),
 		expiresAt: timestamp('expires_at').notNull(),
@@ -34,13 +28,13 @@ export const AuthSessionSchema = pgTable(
 		userAgent: text('user_agent'),
 		userId: text('user_id')
 			.notNull()
-			.references(() => AuthUserSchema.id, { onDelete: 'cascade' }),
+			.references(() => AuthUserSchema.id, { onDelete: 'cascade' })
 	},
-	(table) => [index('session_userId_idx').on(table.userId)],
+	(table) => [index('session_userId_idx').on(table.userId)]
 );
 
 export const AuthAccountSchema = pgTable(
-	'account',
+	'auth_account',
 	{
 		id: text('id').primaryKey(),
 		accountId: text('account_id').notNull(),
@@ -58,13 +52,13 @@ export const AuthAccountSchema = pgTable(
 		createdAt: timestamp('created_at').defaultNow().notNull(),
 		updatedAt: timestamp('updated_at')
 			.$onUpdate(() => /* @__PURE__ */ new Date())
-			.notNull(),
+			.notNull()
 	},
-	(table) => [index('account_userId_idx').on(table.userId)],
+	(table) => [index('account_userId_idx').on(table.userId)]
 );
 
 export const AuthVerificationSchema = pgTable(
-	'verification',
+	'auth_verification',
 	{
 		id: text('id').primaryKey(),
 		identifier: text('identifier').notNull(),
@@ -74,37 +68,26 @@ export const AuthVerificationSchema = pgTable(
 		updatedAt: timestamp('updated_at')
 			.defaultNow()
 			.$onUpdate(() => /* @__PURE__ */ new Date())
-			.notNull(),
+			.notNull()
 	},
-	(table) => [
-		index('verification_identifier_idx').on(table.identifier),
-	],
+	(table) => [index('verification_identifier_idx').on(table.identifier)]
 );
 
-export const AuthUserSchemaRelation = relations(
-	AuthUserSchema,
-	({ many }) => ({
-		sessions: many(AuthSessionSchema),
-		accounts: many(AuthAccountSchema),
-	}),
-);
+export const AuthUserSchemaRelation = relations(AuthUserSchema, ({ many }) => ({
+	sessions: many(AuthSessionSchema),
+	accounts: many(AuthAccountSchema)
+}));
 
-export const AuthSessionSchemaRelation = relations(
-	AuthSessionSchema,
-	({ one }) => ({
-		user: one(AuthUserSchema, {
-			fields: [AuthSessionSchema.userId],
-			references: [AuthUserSchema.id],
-		}),
-	}),
-);
+export const AuthSessionSchemaRelation = relations(AuthSessionSchema, ({ one }) => ({
+	user: one(AuthUserSchema, {
+		fields: [AuthSessionSchema.userId],
+		references: [AuthUserSchema.id]
+	})
+}));
 
-export const AuthAccountSchemaRelation = relations(
-	AuthAccountSchema,
-	({ one }) => ({
-		user: one(AuthUserSchema, {
-			fields: [AuthAccountSchema.userId],
-			references: [AuthUserSchema.id],
-		}),
-	}),
-);
+export const AuthAccountSchemaRelation = relations(AuthAccountSchema, ({ one }) => ({
+	user: one(AuthUserSchema, {
+		fields: [AuthAccountSchema.userId],
+		references: [AuthUserSchema.id]
+	})
+}));

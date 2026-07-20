@@ -4,8 +4,8 @@
 
 @plugin 'daisyui' {
 	themes:
-		winter --default,
-		night --prefersdark;
+		sunset --default,
+		sunset --prefersdark;
 	root: ':root';
 	include:;
 	exclude:;
