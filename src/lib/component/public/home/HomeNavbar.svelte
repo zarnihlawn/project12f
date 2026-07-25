@@ -7,6 +7,7 @@
 	import researchIcon from '$lib/asset/image/research-icon.svg';
 	import freedomIcon from '$lib/asset/image/freedom-icon.svg';
 	import aboutIcon from '$lib/asset/image/about-icon.svg';
+	import { APP_VERSION } from '$lib/app-version';
 </script>
 
 <div class="navbar bg-base-100 shadow-md">
@@ -32,8 +33,13 @@
 			href={resolve('/')}
 			class="btn flex content-center gap-2 btn-ghost text-2xl font-black text-[#F62440]"
 		>
-			<img src={favicon} alt="Logo" class="size-8" />
-			PROJECT 12F
+			<img src={favicon} alt="" class="size-8" />
+			<span class="inline-flex items-baseline gap-1.5">
+				PROJECT 12F
+				<span class="text-[10px] font-medium tracking-normal text-base-content/45"
+					>v{APP_VERSION}</span
+				>
+			</span>
 		</a>
 	</div>
 	<div class="navbar-center hidden lg:flex">

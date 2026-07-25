@@ -7,6 +7,15 @@
 		LucideRefreshCw,
 		LucideUpload
 	} from '@lucide/svelte';
+	import SeoHead from '$lib/component/seo/SeoHead.svelte';
+	import { breadcrumbJsonLd, softwareAppJsonLd, webPageJsonLd } from '$lib/seo/jsonld';
+
+	let { data } = $props();
+
+	const title = 'Image conversion';
+	const description =
+		'Convert JPEG, PNG, WebP, AVIF, GIF, and TIFF online with project12f. Upload any supported image, pick a target format, and download instantly.';
+
 	const FORMATS = [
 		{ id: 'jpeg', label: 'JPEG', mime: 'image/jpeg', ext: 'jpg' },
 		{ id: 'png', label: 'PNG', mime: 'image/png', ext: 'png' },
@@ -155,9 +164,31 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Image Conversion · project12f</title>
-</svelte:head>
+<SeoHead
+	siteOrigin={data.siteOrigin}
+	{title}
+	{description}
+	path="/utilities/image/conversion"
+	jsonLd={[
+		webPageJsonLd({
+			origin: data.siteOrigin,
+			path: '/utilities/image/conversion',
+			title,
+			description
+		}),
+		softwareAppJsonLd({
+			origin: data.siteOrigin,
+			path: '/utilities/image/conversion',
+			name: 'project12f Image Conversion',
+			description
+		}),
+		breadcrumbJsonLd(data.siteOrigin, [
+			{ name: 'Home', path: '/home' },
+			{ name: 'Image utilities', path: '/utilities/image' },
+			{ name: 'Conversion', path: '/utilities/image/conversion' }
+		])
+	]}
+/>
 
 <div class="bg-base-200/40">
 	<div class="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
