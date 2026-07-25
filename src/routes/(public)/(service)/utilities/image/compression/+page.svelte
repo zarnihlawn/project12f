@@ -8,6 +8,15 @@
 		LucideSettings2,
 		LucideUpload
 	} from '@lucide/svelte';
+	import SeoHead from '$lib/component/seo/SeoHead.svelte';
+	import { breadcrumbJsonLd, softwareAppJsonLd, webPageJsonLd } from '$lib/seo/jsonld';
+
+	let { data } = $props();
+
+	const title = 'Image compression';
+	const description =
+		'Compress JPEG, PNG, WebP, and more with project12f. Shrink image file size while keeping visual quality — free, fast, browser-friendly.';
+
 	const FORMATS = [
 		{ id: 'jpeg', label: 'JPEG', ext: 'jpg' },
 		{ id: 'png', label: 'PNG', ext: 'png' },
@@ -280,9 +289,31 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Image Compression · project12f</title>
-</svelte:head>
+<SeoHead
+	siteOrigin={data.siteOrigin}
+	{title}
+	{description}
+	path="/utilities/image/compression"
+	jsonLd={[
+		webPageJsonLd({
+			origin: data.siteOrigin,
+			path: '/utilities/image/compression',
+			title,
+			description
+		}),
+		softwareAppJsonLd({
+			origin: data.siteOrigin,
+			path: '/utilities/image/compression',
+			name: 'project12f Image Compression',
+			description
+		}),
+		breadcrumbJsonLd(data.siteOrigin, [
+			{ name: 'Home', path: '/home' },
+			{ name: 'Image utilities', path: '/utilities/image' },
+			{ name: 'Compression', path: '/utilities/image/compression' }
+		])
+	]}
+/>
 
 <div class="bg-base-200/40">
 	<div class="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">

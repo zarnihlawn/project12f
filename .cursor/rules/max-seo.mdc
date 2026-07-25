@@ -1,0 +1,44 @@
+---
+description: Maximum SEO standards for every website — meta, technical, content, CWV
+alwaysApply: true
+---
+
+# Maximum SEO (always)
+
+Treat SEO as a first-class product requirement on every site. Prefer SSR/prerender for public HTML. Never ship a public page with only a `<title>` and no description/canonical/social tags.
+
+## Required on every public page
+
+- Unique `<title>` (≈50–60 chars): primary keyword near the front + brand
+- Unique meta description (≈150–160 chars): benefit + CTA language, no keyword stuffing
+- Canonical absolute URL (self-referencing unless intentionally consolidating)
+- Open Graph + Twitter cards (`og:title`, `og:description`, `og:url`, `og:type`, `og:image`, `twitter:card`)
+- One clear `h1` matching search intent; logical `h2`/`h3` hierarchy (never skip levels for style)
+- Descriptive `alt` on meaningful images; empty `alt=""` only for decorative
+- Internal links with descriptive anchors (not “click here”)
+- `lang` / `dir` on `<html>`; `hreflang` (+ `x-default`) when multi-locale
+
+## Technical
+
+- Public indexable URLs: clean paths, prefer 301 over 302 for permanent moves
+- `robots.txt` + XML sitemap (list only canonical, indexable URLs)
+- `noindex` private/app areas (auth, admin, dashboards, thank-you duplicates)
+- JSON-LD where it fits (`Organization`, `WebSite` + `SearchAction`, `WebPage`, `BreadcrumbList`, `FAQPage`, `SoftwareApplication`, etc.) — valid, non-spammy
+- Fast by default: minimize LCP image weight, set dimensions, avoid layout shift; don’t block render with huge unused JS
+- Prefer semantic HTML (`main`, `nav`, `header`, `footer`, `article`) over div soup
+- Paginated/filtered URLs: canonical to the preferred version; don’t index infinite facet spam
+
+## Content
+
+- Write for humans first; keywords support intent, they don’t dominate
+- Unique value on each URL — no thin doorway pages or near-duplicates
+- Fix soft-404s (empty results should 404 or clearly noindex)
+
+## Do not
+
+- Cloaking, hidden text, bought links, fake reviews, keyword stuffing
+- Duplicate titles/descriptions across the site
+- Indexing cart, account, internal search result spam, or staging
+- Relying on client-only meta injection for critical public pages
+
+When scaffolding a new site, add shared SEO head helpers, sitemap, robots, and default Organization/WebSite JSON-LD in the first PR — not as a later “nice to have”.

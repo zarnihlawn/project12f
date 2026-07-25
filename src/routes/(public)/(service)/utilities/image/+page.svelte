@@ -6,6 +6,15 @@
 		LucideMinimize2,
 		LucidePencil
 	} from '@lucide/svelte';
+	import SeoHead from '$lib/component/seo/SeoHead.svelte';
+	import { breadcrumbJsonLd, softwareAppJsonLd, webPageJsonLd } from '$lib/seo/jsonld';
+
+	let { data } = $props();
+
+	const title = 'Image utilities';
+	const description =
+		'Free browser-friendly image tools on project12f — convert formats, compress file size, and edit images without installing desktop software.';
+
 	const tools = [
 		{
 			title: 'Conversion',
@@ -31,9 +40,30 @@
 	];
 </script>
 
-<svelte:head>
-	<title>Image utilities · project12f</title>
-</svelte:head>
+<SeoHead
+	siteOrigin={data.siteOrigin}
+	{title}
+	{description}
+	path="/utilities/image"
+	jsonLd={[
+		webPageJsonLd({
+			origin: data.siteOrigin,
+			path: '/utilities/image',
+			title,
+			description
+		}),
+		softwareAppJsonLd({
+			origin: data.siteOrigin,
+			path: '/utilities/image',
+			name: 'project12f Image Utilities',
+			description
+		}),
+		breadcrumbJsonLd(data.siteOrigin, [
+			{ name: 'Home', path: '/home' },
+			{ name: 'Image utilities', path: '/utilities/image' }
+		])
+	]}
+/>
 
 <div class="bg-base-200/40">
 	<div class="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
