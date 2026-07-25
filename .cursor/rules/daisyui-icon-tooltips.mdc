@@ -1,0 +1,46 @@
+---
+description: Icon-only buttons must use DaisyUI tooltips (data-tip)
+globs: "**/*.svelte"
+alwaysApply: false
+---
+
+# DaisyUI tooltips on icon-only buttons
+
+Every button that shows **only an icon** (no visible text label) must use a DaisyUI tooltip so the action is discoverable on hover/focus.
+
+## Required pattern
+
+Wrap the button (or put tooltip classes on a parent) and set `data-tip`. Keep `aria-label` in sync for accessibility.
+
+```svelte
+<!-- ✅ GOOD -->
+<div class="tooltip tooltip-right" data-tip="Brush (B)">
+  <button type="button" class="btn btn-square btn-xs" aria-label="Brush (B)">
+    <Brush class="h-4 w-4" />
+  </button>
+</div>
+
+<!-- ✅ GOOD (tooltip on the control itself when supported) -->
+<button
+  type="button"
+  class="btn btn-square btn-xs tooltip"
+  data-tip="Delete layer"
+  aria-label="Delete layer"
+>
+  <Trash2 class="h-3.5 w-3.5" />
+</button>
+```
+
+```svelte
+<!-- ❌ BAD — native title only, or no tip -->
+<button type="button" class="btn btn-square" title="Brush">
+  <Brush class="h-4 w-4" />
+</button>
+```
+
+## Rules
+
+- Prefer DaisyUI `tooltip` + `data-tip` over the HTML `title` attribute for icon-only controls
+- Choose placement when needed: `tooltip-right`, `tooltip-left`, `tooltip-top`, `tooltip-bottom`
+- Text-labeled buttons (visible words inside the button) do **not** require a tooltip
+- Toolbar / square icon buttons in the image editor and elsewhere must follow this every time you add one

@@ -32,10 +32,10 @@
 		},
 		{
 			title: 'Editor',
-			description: 'Crop, resize, and adjust images in the browser.',
+			description: 'Crop, paint, layers, masks, and adjustments in the browser (beta).',
 			href: '/(public)/(service)/utilities/image/editor' as const,
 			icon: LucidePencil,
-			badge: 'Soon'
+			badge: 'Beta'
 		}
 	];
 </script>
