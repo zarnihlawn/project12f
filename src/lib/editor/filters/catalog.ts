@@ -43,17 +43,15 @@ function clamp(v: number) {
 	return v < 0 ? 0 : v > 255 ? 255 : v;
 }
 
-export function applyFilterToActiveLayer(
-	doc: EditorDocument,
+export function applyFilterToPixels(
+	pixels: Uint8ClampedArray,
+	w: number,
+	h: number,
 	filterId: FilterId,
 	amount = 1
 ): boolean {
-	const layer = getActiveLayer(doc);
-	if (!layer?.pixels) return false;
-	const w = layer.width;
-	const h = layer.height;
-	const src = new Uint8ClampedArray(layer.pixels);
-	const dst = layer.pixels;
+	const src = new Uint8ClampedArray(pixels);
+	const dst = pixels;
 
 	switch (filterId) {
 		case 'box-blur':
@@ -158,11 +156,20 @@ export function applyFilterToActiveLayer(
 		}
 		case 'content-aware-fill':
 		case 'select-subject':
-			// Handled by EditorState intelligence methods
 			return false;
 		default:
 			return false;
 	}
+}
+
+export function applyFilterToActiveLayer(
+	doc: EditorDocument,
+	filterId: FilterId,
+	amount = 1
+): boolean {
+	const layer = getActiveLayer(doc);
+	if (!layer?.pixels) return false;
+	return applyFilterToPixels(layer.pixels, layer.width, layer.height, filterId, amount);
 }
 
 function boxBlur(

@@ -150,6 +150,13 @@
 								<li>
 									<a
 										href={resolve(
+											'/(public)/(service)/utilities/image/retouch',
+										)}>Retouch</a
+									>
+								</li>
+								<li>
+									<a
+										href={resolve(
 											'/(public)/(service)/utilities/image/editor',
 										)}>Editor</a
 									>

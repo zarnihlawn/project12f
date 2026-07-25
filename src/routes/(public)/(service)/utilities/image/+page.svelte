@@ -4,7 +4,8 @@
 		LucideArrowRightLeft,
 		LucideImage,
 		LucideMinimize2,
-		LucidePencil
+		LucidePencil,
+		LucideSparkles
 	} from '@lucide/svelte';
 	import SeoHead from '$lib/component/seo/SeoHead.svelte';
 	import { breadcrumbJsonLd, softwareAppJsonLd, webPageJsonLd } from '$lib/seo/jsonld';
@@ -13,7 +14,7 @@
 
 	const title = 'Image utilities';
 	const description =
-		'Free browser-friendly image tools on project12f — convert formats, compress file size, and edit images without installing desktop software.';
+		'Free browser-friendly image tools on project12f — convert formats, compress file size, retouch, and edit images without installing desktop software.';
 
 	const tools = [
 		{
@@ -31,8 +32,15 @@
 			badge: 'Ready'
 		},
 		{
+			title: 'Retouch',
+			description: 'Quick edit: resize, crop, flip, rotate, filters, and export.',
+			href: '/(public)/(service)/utilities/image/retouch' as const,
+			icon: LucideSparkles,
+			badge: 'Ready'
+		},
+		{
 			title: 'Editor',
-			description: 'Crop, paint, layers, masks, and adjustments in the browser (beta).',
+			description: 'Pro editor with layers, paint, masks, and adjustments (beta).',
 			href: '/(public)/(service)/utilities/image/editor' as const,
 			icon: LucidePencil,
 			badge: 'Beta'
@@ -82,13 +90,13 @@
 				</span>
 				<h1 class="text-3xl font-bold md:text-4xl">Image tools</h1>
 				<p class="max-w-2xl text-base-content/70">
-					Convert, compress, and edit images. Start with conversion — any supported format to
-					any other.
+					Convert, compress, retouch, or open the pro editor. Start with conversion — any supported
+					format to any other.
 				</p>
 			</div>
 		</section>
 
-		<div class="grid gap-4 md:grid-cols-3">
+		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
 			{#each tools as tool}
 				{@const Icon = tool.icon}
 				<a
