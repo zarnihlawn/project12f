@@ -18,9 +18,19 @@ export const SITE = {
 	/** Public paths included in sitemap (locale variants generated at serve time) */
 	sitemapPaths: [
 		'/home',
+		'/about',
+		'/contact',
+		'/jobs',
+		'/press',
+		'/services',
+		'/services/branding',
+		'/services/design',
+		'/services/marketing',
+		'/services/advertisement',
 		'/utilities/image',
 		'/utilities/image/conversion',
-		'/utilities/image/compression'
+		'/utilities/image/compression',
+		'/utilities/image/retouch'
 	] as const
 } as const;
 
