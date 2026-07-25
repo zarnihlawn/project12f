@@ -16,6 +16,7 @@
 	import * as authApi from '$lib/auth/api';
 	import AuthToast from '$lib/component/auth/AuthToast.svelte';
 	import PasswordInput from '$lib/component/auth/PasswordInput.svelte';
+	import SeoHead from '$lib/component/seo/SeoHead.svelte';
 	import favicon from '$lib/asset/favicon.svg';
 	import type { Component } from 'svelte';
 
@@ -439,9 +440,13 @@
 	});
 </script>
 
-<svelte:head>
-	<title>Auth · project12f</title>
-</svelte:head>
+<SeoHead
+	siteOrigin={data.siteOrigin}
+	title="Sign in"
+	description="Sign in to project12f to access private tools, utilities, and your account. Secure email OTP and optional two-factor authentication."
+	path="/auth"
+	robots="noindex,nofollow"
+/>
 
 <AuthToast text={message} tone={messageTone} onclose={() => (message = '')} />
 
