@@ -36,7 +36,8 @@
 			<img src={favicon} alt="" class="size-8" />
 			<span class="inline-flex items-baseline gap-1.5">
 				PROJECT 12F
-				<span class="text-[10px] font-medium tracking-normal text-base-content/45"
+				<span
+					class="text-[10px] font-medium tracking-normal text-base-content/45"
 					>v{APP_VERSION}</span
 				>
 			</span>
@@ -67,50 +68,36 @@
 							</ul>
 						</li>
 						<li>
-							<a href={resolve('/')}>Services</a>
+							<a href={resolve('/(public)/services')}>Services</a>
 							<ul>
 								<li>
-									<a href={resolve('/')}>Branding</a>
+									<a href={resolve('/(public)/services/branding')}>Branding</a>
 								</li>
 								<li>
-									<a href={resolve('/')}>Design</a>
+									<a href={resolve('/(public)/services/design')}>Design</a>
 								</li>
 								<li>
-									<a href={resolve('/')}>Marketing</a>
+									<a href={resolve('/(public)/services/marketing')}>Marketing</a>
 								</li>
 								<li>
-									<a href={resolve('/')}>Advertisement</a>
+									<a href={resolve('/(public)/services/advertisement')}>Advertisement</a>
 								</li>
 							</ul>
 						</li>
 						<li>
-							<a href={resolve('/')}>Company</a>
+							<a href={resolve('/(public)/about')}>Company</a>
 							<ul>
 								<li>
-									<a href={resolve('/')}>About us</a>
+									<a href={resolve('/(public)/about')}>About us</a>
 								</li>
 								<li>
-									<a href={resolve('/')}>Contact</a>
+									<a href={resolve('/(public)/contact')}>Contact</a>
 								</li>
 								<li>
-									<a href={resolve('/')}>Jobs</a>
+									<a href={resolve('/(public)/jobs')}>Jobs</a>
 								</li>
 								<li>
-									<a href={resolve('/')}>Press kit</a>
-								</li>
-							</ul>
-						</li>
-						<li>
-							<a href={resolve('/')}>Legal</a>
-							<ul>
-								<li>
-									<a href={resolve('/')}>Terms of use</a>
-								</li>
-								<li>
-									<a href={resolve('/')}>Privacy policy</a>
-								</li>
-								<li>
-									<a href={resolve('/')}>Cookie policy</a>
+									<a href={resolve('/(public)/press')}>Press kit</a>
 								</li>
 							</ul>
 						</li>
@@ -206,20 +193,7 @@
 			<button popovertarget="researchMenu">Research</button>
 			<div id="researchMenu" popover>
 				<div class="flex items-start max-sm:flex-col">
-					<ul class="menu w-full md:menu-horizontal">
-						<li>
-							<a>Images</a>
-							<ul>
-								<li>
-									<a>Conversion</a>
-									<ul class="menu w-full md:menu-horizontal">
-										<li><a>PNG</a></li>
-									</ul>
-								</li>
-								<li><a>Compression</a></li>
-							</ul>
-						</li>
-					</ul>
+					<ul class="menu w-full md:menu-horizontal"></ul>
 					<img
 						src={researchIcon}
 						class="size-52 bg-accent/10 max-md:hidden md:max-w-sm"
