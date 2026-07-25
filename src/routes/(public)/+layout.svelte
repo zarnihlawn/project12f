@@ -6,10 +6,13 @@
 
 	let { children }: { children: Snippet } = $props();
 
-	const isAuth = $derived(page.url.pathname.startsWith('/auth'));
+	const isImmersive = $derived(
+		page.url.pathname.startsWith('/auth') ||
+			page.url.pathname.includes('/utilities/image/editor')
+	);
 </script>
 
-{#if isAuth}
+{#if isImmersive}
 	{@render children()}
 {:else}
 	<div class="flex min-h-screen flex-col">
