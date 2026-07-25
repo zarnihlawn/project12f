@@ -23,6 +23,7 @@ export default defineConfig({
 			extensions: ['.svelte', '.svx', '.md'],
 			experimental: {
 				remoteFunctions: true,
+				explicitEnvironmentVariables: true,
 				handleRenderingErrors: true,
 				forkPreloads: true,
 			},

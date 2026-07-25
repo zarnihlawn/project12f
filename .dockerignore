@@ -1,0 +1,16 @@
+node_modules
+.svelte-kit
+build
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+docker-compose*
+README.md
+.vscode
+.cursor
+test-results
+playwright-report
+**/*.spec.ts
+**/*.test.ts
