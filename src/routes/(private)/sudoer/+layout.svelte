@@ -1,5 +1,14 @@
 <script lang="ts">
-	import { LucideMenu, LucideLayoutDashboard, LucideBookOpen, LucideDatabase, LucideLayers, LucideShield } from '@lucide/svelte';
+	import {
+		LucideBookOpen,
+		LucideDatabase,
+		LucideLayoutDashboard,
+		LucideLayers,
+		LucideLogOut,
+		LucideMenu,
+		LucideShield
+	} from '@lucide/svelte';
+	import { authClient } from '$lib/auth-client';
 
 	let { data, children } = $props();
 
@@ -9,6 +18,37 @@
 		'book-open': LucideBookOpen,
 		layers: LucideLayers
 	} as const;
+
+	let signingOut = $state(false);
+
+	async function signOut() {
+		signingOut = true;
+		try {
+			await authClient.signOut();
+		} finally {
+			window.location.href = '/auth';
+		}
+	}
+
+	/** When the 1h session ends, send the user back to login without waiting for navigation. */
+	$effect(() => {
+		const expiresAt = data.sessionExpiresAt ? new Date(data.sessionExpiresAt).getTime() : 0;
+		if (!expiresAt) return;
+
+		const ms = expiresAt - Date.now();
+		const redirectToLogin = () => {
+			const path = window.location.pathname;
+			window.location.href = `/auth?redirectTo=${encodeURIComponent(path)}`;
+		};
+
+		if (ms <= 0) {
+			redirectToLogin();
+			return;
+		}
+
+		const id = setTimeout(redirectToLogin, ms);
+		return () => clearTimeout(id);
+	});
 </script>
 
 <div class="drawer lg:drawer-open">
@@ -21,6 +61,11 @@
 				</label>
 			</div>
 			<div class="flex-1 font-semibold">Sudoer</div>
+			<button class="btn btn-ghost btn-sm gap-1" disabled={signingOut} onclick={signOut}>
+				{#if signingOut}<span class="loading loading-spinner loading-xs"></span>{/if}
+				<LucideLogOut class="size-4" />
+				Sign out
+			</button>
 		</div>
 		<div class="flex-1 p-4 md:p-6">
 			{@render children()}
@@ -63,6 +108,21 @@
 					{/each}
 				{/each}
 			</ul>
+
+			<div class="border-t border-base-300 p-3">
+				<button
+					class="btn btn-ghost btn-block justify-start gap-2"
+					disabled={signingOut}
+					onclick={signOut}
+				>
+					{#if signingOut}
+						<span class="loading loading-spinner loading-sm"></span>
+					{:else}
+						<LucideLogOut class="size-4" />
+					{/if}
+					Sign out
+				</button>
+			</div>
 		</aside>
 	</div>
 </div>

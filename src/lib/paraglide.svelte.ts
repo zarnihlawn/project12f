@@ -1,5 +1,5 @@
 import type { Locale as _Locale } from '$lib/paraglide/runtime';
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 import { goto } from '$app/navigation';
 import { page } from '$app/state';
 

@@ -18,7 +18,7 @@
 	let visible = $state(false);
 </script>
 
-<label class="input input-bordered flex w-full items-center gap-2">
+<div class="input input-bordered flex w-full items-center gap-2">
 	<input
 		class="grow"
 		type={visible ? 'text' : 'password'}
@@ -30,9 +30,13 @@
 	/>
 	<button
 		type="button"
-		class="btn btn-ghost btn-xs btn-square"
+		class="btn btn-ghost btn-xs btn-square shrink-0"
+		tabindex="-1"
 		aria-label={visible ? 'Hide password' : 'Show password'}
-		onclick={() => (visible = !visible)}
+		onclick={(e) => {
+			e.preventDefault();
+			visible = !visible;
+		}}
 	>
 		{#if visible}
 			<LucideEyeOff class="size-4 opacity-70" />
@@ -40,4 +44,4 @@
 			<LucideEye class="size-4 opacity-70" />
 		{/if}
 	</button>
-</label>
+</div>

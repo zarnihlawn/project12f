@@ -3,13 +3,17 @@ node_modules
 build
 .git
 .gitignore
+# Never copy local secrets into the image
 .env
 .env.*
 !.env.example
+*.pem
+*.key
 docker-compose*
 README.md
 .vscode
 .cursor
+agent-transcripts
 test-results
 playwright-report
 **/*.spec.ts
