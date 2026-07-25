@@ -6,8 +6,6 @@
 		LucideMinimize2,
 		LucidePencil
 	} from '@lucide/svelte';
-	import HomeNavbar from '$lib/component/public/home/HomeNavbar.svelte';
-
 	const tools = [
 		{
 			title: 'Conversion',
@@ -37,9 +35,7 @@
 	<title>Image utilities · project12f</title>
 </svelte:head>
 
-<HomeNavbar />
-
-<div class="min-h-screen bg-base-200/40">
+<div class="bg-base-200/40">
 	<div class="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
 		<div class="breadcrumbs text-sm">
 			<ul>
