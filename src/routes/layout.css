@@ -1,3 +1,4 @@
+@import '../lib/asset/style/font.style.css';
 @import 'tailwindcss';
 /* class strategy — avoids the global blue focus ring on native inputs */
 @plugin '@tailwindcss/forms' {
