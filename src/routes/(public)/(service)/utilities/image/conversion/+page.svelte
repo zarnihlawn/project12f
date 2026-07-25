@@ -7,8 +7,6 @@
 		LucideRefreshCw,
 		LucideUpload
 	} from '@lucide/svelte';
-	import HomeNavbar from '$lib/component/public/home/HomeNavbar.svelte';
-
 	const FORMATS = [
 		{ id: 'jpeg', label: 'JPEG', mime: 'image/jpeg', ext: 'jpg' },
 		{ id: 'png', label: 'PNG', mime: 'image/png', ext: 'png' },
@@ -161,9 +159,7 @@
 	<title>Image Conversion · project12f</title>
 </svelte:head>
 
-<HomeNavbar />
-
-<div class="min-h-screen bg-base-200/40">
+<div class="bg-base-200/40">
 	<div class="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
 		<div class="breadcrumbs text-sm">
 			<ul>

@@ -7,6 +7,7 @@ export const AuthUserSchema = pgTable('auth_user', {
 	email: text('email').notNull().unique(),
 	emailVerified: boolean('email_verified').default(false).notNull(),
 	image: text('image'),
+	twoFactorEnabled: boolean('two_factor_enabled').default(false),
 	createdAt: timestamp('created_at').defaultNow().notNull(),
 	updatedAt: timestamp('updated_at')
 		.defaultNow()
@@ -73,9 +74,19 @@ export const AuthVerificationSchema = pgTable(
 	(table) => [index('verification_identifier_idx').on(table.identifier)]
 );
 
+export const AuthTwoFactorSchema = pgTable('auth_two_factor', {
+	id: text('id').primaryKey(),
+	secret: text('secret').notNull(),
+	backupCodes: text('backup_codes').notNull(),
+	userId: text('user_id')
+		.notNull()
+		.references(() => AuthUserSchema.id, { onDelete: 'cascade' })
+});
+
 export const AuthUserSchemaRelation = relations(AuthUserSchema, ({ many }) => ({
 	sessions: many(AuthSessionSchema),
-	accounts: many(AuthAccountSchema)
+	accounts: many(AuthAccountSchema),
+	twoFactors: many(AuthTwoFactorSchema)
 }));
 
 export const AuthSessionSchemaRelation = relations(AuthSessionSchema, ({ one }) => ({
@@ -88,6 +99,13 @@ export const AuthSessionSchemaRelation = relations(AuthSessionSchema, ({ one }) 
 export const AuthAccountSchemaRelation = relations(AuthAccountSchema, ({ one }) => ({
 	user: one(AuthUserSchema, {
 		fields: [AuthAccountSchema.userId],
+		references: [AuthUserSchema.id]
+	})
+}));
+
+export const AuthTwoFactorSchemaRelation = relations(AuthTwoFactorSchema, ({ one }) => ({
+	user: one(AuthUserSchema, {
+		fields: [AuthTwoFactorSchema.userId],
 		references: [AuthUserSchema.id]
 	})
 }));

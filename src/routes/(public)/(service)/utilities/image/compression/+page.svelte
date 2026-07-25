@@ -8,8 +8,6 @@
 		LucideSettings2,
 		LucideUpload
 	} from '@lucide/svelte';
-	import HomeNavbar from '$lib/component/public/home/HomeNavbar.svelte';
-
 	const FORMATS = [
 		{ id: 'jpeg', label: 'JPEG', ext: 'jpg' },
 		{ id: 'png', label: 'PNG', ext: 'png' },
@@ -286,9 +284,7 @@
 	<title>Image Compression · project12f</title>
 </svelte:head>
 
-<HomeNavbar />
-
-<div class="min-h-screen bg-base-200/40">
+<div class="bg-base-200/40">
 	<div class="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
 		<div class="breadcrumbs text-sm">
 			<ul>

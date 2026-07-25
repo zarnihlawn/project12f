@@ -10,4 +10,8 @@ export const variables = defineEnvVars({
 		description:
 			'Secret used to sign tokens. For production use 32 characters generated with high entropy. See [Better Auth installation](https://www.better-auth.com/docs/installation).',
 	},
+	SUDOER_EMAILS: {
+		description:
+			'Comma-separated emails allowed to access /sudoer dashboard.',
+	},
 });

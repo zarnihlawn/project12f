@@ -1,13 +1,10 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import HomeNavbar from '$lib/component/public/home/HomeNavbar.svelte';
 </script>
 
 <svelte:head>
 	<title>Image editor · project12f</title>
 </svelte:head>
-
-<HomeNavbar />
 
 <div class="hero min-h-[60vh] bg-base-200">
 	<div class="hero-content text-center">
