@@ -5,7 +5,7 @@ const STAY_WHEN_SIGNED_IN = new Set(['two-factor', 'otp', 'setup-2fa']);
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const view = url.searchParams.get('view') ?? 'sign-in';
-	const redirectTo = url.searchParams.get('redirectTo') || '/sudoer';
+	const redirectTo = url.searchParams.get('redirectTo') || '/';
 
 	if (locals.user && !STAY_WHEN_SIGNED_IN.has(view)) {
 		redirect(303, redirectTo);

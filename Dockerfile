@@ -2,6 +2,12 @@
 
 # Fly.io + SvelteKit (adapter-node)
 # https://fly.io/docs/js/frameworks/svelte/
+#
+# Env safety:
+# - `.env` is excluded via `.dockerignore` (never bake secrets into the image)
+# - Private vars in `src/env.ts` are dynamic (`static: false`) and optional during `vite build`
+# - Real values come from Fly secrets / runtime `-e` when the container starts
+# - Do NOT pass DATABASE_URL / BETTER_AUTH_SECRET as build-args
 
 ARG NODE_VERSION=22.14.0
 
@@ -31,14 +37,7 @@ RUN npm ci --include=dev
 
 COPY . .
 
-# Explicit env vars must exist at build; real values come from `fly secrets` at runtime
-ARG DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build
-ARG ORIGIN=https://project12f.fly.dev
-ARG BETTER_AUTH_SECRET=build-time-placeholder-change-me-32chars
-ENV DATABASE_URL=$DATABASE_URL \
-	ORIGIN=$ORIGIN \
-	BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
-
+# No secret ENV/ARG here — build must succeed without runtime credentials
 RUN npm run build
 RUN npm prune --omit=dev
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import {
 		LucideArrowLeft,
 		LucideCopy,
@@ -13,7 +13,8 @@
 		LucideSparkles,
 		LucideUserPlus
 	} from '@lucide/svelte';
-	import { authClient } from '$lib/auth-client';
+	import * as authApi from '$lib/auth/api';
+	import AuthToast from '$lib/component/auth/AuthToast.svelte';
 	import PasswordInput from '$lib/component/auth/PasswordInput.svelte';
 	import favicon from '$lib/asset/favicon.svg';
 	import type { Component } from 'svelte';
@@ -42,7 +43,15 @@
 	let setupStep = $state<'password' | 'scan' | 'done'>('password');
 	let copied = $state(false);
 
-	const redirectTo = $derived(data.redirectTo || '/sudoer');
+	const RESEND_COOLDOWN_SEC = 60;
+	let resendAvailableAt = $state(0);
+	let cooldownNow = $state(Date.now());
+
+	const redirectTo = $derived(data.redirectTo || '/');
+	const resendSecondsLeft = $derived(
+		Math.max(0, Math.ceil((resendAvailableAt - cooldownNow) / 1000))
+	);
+	const canResend = $derived(resendSecondsLeft === 0 && !pending);
 
 	const titles: Record<View, { title: string; subtitle: string; icon: Component }> = {
 		'sign-in': {
@@ -67,7 +76,7 @@
 		},
 		otp: {
 			title: 'Enter verification code',
-			subtitle: 'Check your inbox (or server console in dev)',
+			subtitle: 'Check your inbox for the 6-digit code',
 			icon: LucideMail
 		},
 		'two-factor': {
@@ -99,255 +108,300 @@
 	function setView(next: View, opts?: { email?: string; clearMessage?: boolean }) {
 		view = next;
 		if (opts?.email != null) email = opts.email;
-		if (opts?.clearMessage !== false) {
-			message = '';
-		}
+		if (opts?.clearMessage !== false) message = '';
 		const url = new URL(page.url);
 		url.searchParams.set('view', next);
 		if (email) url.searchParams.set('email', email);
 		else url.searchParams.delete('email');
 		if (data.token) url.searchParams.set('token', data.token);
-		history.replaceState({}, '', url);
+		void goto(`${url.pathname}${url.search}`, {
+			replaceState: true,
+			noScroll: true,
+			keepFocus: true,
+			invalidateAll: false
+		});
 	}
 
-	function fail(err: unknown) {
-		const e = err as { message?: string; error?: { message?: string }; status?: number };
-		message = e?.error?.message || e?.message || 'Something went wrong';
-		messageTone = 'error';
+	function startResendCooldown(seconds = RESEND_COOLDOWN_SEC) {
+		resendAvailableAt = Date.now() + seconds * 1000;
+		cooldownNow = Date.now();
+		otp = '';
 	}
 
-	function isUnverified(err: unknown) {
-		const msg = String(
-			(err as { error?: { message?: string }; message?: string })?.error?.message ||
-				(err as { message?: string })?.message ||
-				''
-		).toLowerCase();
-		return msg.includes('not verified') || msg.includes('email verification');
+	function show(text: string, tone: 'error' | 'success' | 'info' = 'info') {
+		message = text;
+		messageTone = tone;
 	}
 
-	async function onSignIn(e: Event) {
-		e.preventDefault();
-		pending = true;
-		message = '';
-		try {
-			const { error } = await authClient.signIn.email({
-				email,
-				password,
-				callbackURL: redirectTo
-			});
-			if (error) throw error;
-			await goto(redirectTo);
-		} catch (err) {
-			if (isUnverified(err)) {
-				try {
-					await authClient.emailOtp.sendVerificationOtp({
-						email,
-						type: 'email-verification'
-					});
-					otpType = 'email-verification';
-					message = 'Verify your email with the code we just sent.';
-					messageTone = 'info';
-					setView('otp', { email, clearMessage: false });
-					return;
-				} catch (sendErr) {
-					fail(sendErr);
-					return;
-				}
-			}
-			fail(err);
-		} finally {
-			pending = false;
-		}
+	function fail(msg: string) {
+		show(msg || 'Something went wrong. Please try again.', 'error');
 	}
 
-	async function onSignUp(e: Event) {
-		e.preventDefault();
-		if (password !== confirmPassword) {
-			message = 'Passwords do not match';
-			messageTone = 'error';
+	async function onSignIn(e?: Event) {
+		e?.preventDefault();
+		if (pending) return;
+		const em = email.trim();
+		if (!em || !password) {
+			fail('Enter your email and password to sign in.');
 			return;
 		}
 		pending = true;
-		message = '';
+		show('Signing in…', 'info');
 		try {
-			const { error } = await authClient.signUp.email({
-				name,
-				email,
-				password,
-				callbackURL: redirectTo
-			});
-			if (error) throw error;
-			otpType = 'email-verification';
-			message = 'Account created. Enter the OTP we sent you.';
-			messageTone = 'success';
-			setView('otp', { email, clearMessage: false });
+			const result = await authApi.signInEmail(em, password, redirectTo);
+			if (!result.ok) {
+				const code = (result.code || '').toUpperCase();
+				const lower = result.message.toLowerCase();
+				if (
+					code.includes('EMAIL_NOT_VERIFIED') ||
+					lower.includes('not verified') ||
+					lower.includes('email verification')
+				) {
+					const sent = await authApi.sendEmailOtp(em, 'email-verification');
+					otpType = 'email-verification';
+					startResendCooldown();
+					setView('otp', { email: em, clearMessage: false });
+					show(
+						sent.ok
+							? 'Verify your email with the code we just sent.'
+							: 'Email not verified. Use Resend if you need a new code.',
+						'info'
+					);
+					return;
+				}
+				fail(result.message);
+				return;
+			}
+			if (result.data?.twoFactorRedirect) {
+				setView('two-factor', { email: em, clearMessage: false });
+				show('Enter your authenticator code to continue.', 'info');
+				return;
+			}
+			show('Signed in. Redirecting…', 'success');
+			window.location.assign(redirectTo);
 		} catch (err) {
-			fail(err);
+			fail(err instanceof Error ? err.message : 'Sign in failed.');
 		} finally {
 			pending = false;
 		}
 	}
 
-	async function onForgot(e: Event) {
-		e.preventDefault();
+	async function onSignUp(e?: Event) {
+		e?.preventDefault();
+		if (pending) return;
+		if (password !== confirmPassword) {
+			fail('Passwords do not match');
+			return;
+		}
 		pending = true;
-		message = '';
+		show('Creating account…', 'info');
 		try {
-			const { error } = await authClient.emailOtp.requestPasswordReset({ email });
-			if (error) throw error;
+			const result = await authApi.signUpEmail({
+				name: name.trim(),
+				email: email.trim(),
+				password,
+				callbackURL: redirectTo
+			});
+			if (!result.ok) {
+				fail(result.message);
+				return;
+			}
+			otpType = 'email-verification';
+			startResendCooldown();
+			setView('otp', { email: email.trim(), clearMessage: false });
+			show('Account created. Enter the OTP we sent you.', 'success');
+		} catch (err) {
+			fail(err instanceof Error ? err.message : 'Sign up failed.');
+		} finally {
+			pending = false;
+		}
+	}
+
+	async function onForgot(e?: Event) {
+		e?.preventDefault();
+		if (pending) return;
+		if (!email.trim()) {
+			fail('Enter your email address.');
+			return;
+		}
+		pending = true;
+		show('Sending reset code…', 'info');
+		try {
+			const result = await authApi.requestPasswordResetOtp(email.trim());
+			if (!result.ok) {
+				fail(result.message);
+				return;
+			}
 			otpType = 'forget-password';
 			otp = '';
 			password = '';
 			confirmPassword = '';
-			message = 'If that email exists, an OTP is on the way.';
-			messageTone = 'success';
-			setView('reset', { email, clearMessage: false });
+			startResendCooldown();
+			setView('reset', { email: email.trim(), clearMessage: false });
+			show('If that email exists, an OTP is on the way.', 'success');
 		} catch (err) {
-			fail(err);
+			fail(err instanceof Error ? err.message : 'Could not send reset code.');
 		} finally {
 			pending = false;
 		}
 	}
 
-	async function onVerifyOtp(e: Event) {
-		e.preventDefault();
+	async function onVerifyOtp(e?: Event) {
+		e?.preventDefault();
+		if (pending || otp.length < 6) return;
 		pending = true;
-		message = '';
+		show('Verifying code…', 'info');
 		try {
-			const { error } = await authClient.emailOtp.verifyEmail({
-				email,
-				otp
-			});
-			if (error) throw error;
-			await goto(redirectTo);
+			const result = await authApi.verifyEmailOtp(email.trim(), otp);
+			if (!result.ok) {
+				fail(result.message);
+				return;
+			}
+			show('Verified. Redirecting…', 'success');
+			window.location.assign(redirectTo);
 		} catch (err) {
-			fail(err);
+			fail(err instanceof Error ? err.message : 'Verification failed.');
 		} finally {
 			pending = false;
 		}
 	}
 
 	async function onResendOtp() {
+		if (!canResend) return;
 		pending = true;
-		message = '';
+		show('Sending a new code…', 'info');
 		try {
-			if (otpType === 'forget-password') {
-				const { error } = await authClient.emailOtp.requestPasswordReset({ email });
-				if (error) throw error;
-			} else {
-				const { error } = await authClient.emailOtp.sendVerificationOtp({
-					email,
-					type: 'email-verification'
-				});
-				if (error) throw error;
+			const res = await fetch('/api/auth/resend-otp', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({
+					email: email.trim(),
+					type: otpType === 'forget-password' ? 'forget-password' : 'email-verification'
+				})
+			});
+			const payload = (await res.json().catch(() => ({}))) as {
+				error?: string;
+				retryAfter?: number;
+				cooldown?: number;
+			};
+			if (res.status === 429) {
+				startResendCooldown(payload.retryAfter || payload.cooldown || RESEND_COOLDOWN_SEC);
+				show(payload.error || 'Please wait before requesting another code.', 'info');
+				return;
 			}
-			message = 'A new code was sent.';
-			messageTone = 'success';
+			if (!res.ok) {
+				fail(payload.error || 'Could not resend code.');
+				return;
+			}
+			startResendCooldown(payload.cooldown || RESEND_COOLDOWN_SEC);
+			show('Previous code expired. A new code was sent.', 'success');
 		} catch (err) {
-			fail(err);
+			fail(err instanceof Error ? err.message : 'Could not resend code.');
 		} finally {
 			pending = false;
 		}
 	}
 
-	async function onResetPassword(e: Event) {
-		e.preventDefault();
+	async function onResetPassword(e?: Event) {
+		e?.preventDefault();
+		if (pending) return;
 		if (password !== confirmPassword) {
-			message = 'Passwords do not match';
-			messageTone = 'error';
+			fail('Passwords do not match');
 			return;
 		}
 		pending = true;
-		message = '';
+		show('Updating password…', 'info');
 		try {
 			if (data.token) {
-				const { error } = await authClient.resetPassword({
-					newPassword: password,
-					token: data.token
+				const res = await fetch('/api/auth/reset-password', {
+					method: 'POST',
+					credentials: 'include',
+					headers: { 'content-type': 'application/json' },
+					body: JSON.stringify({ newPassword: password, token: data.token })
 				});
-				if (error) throw error;
+				const body = (await res.json().catch(() => ({}))) as { message?: string };
+				if (!res.ok) {
+					fail(body.message || 'Could not reset password.');
+					return;
+				}
 			} else {
-				const { error } = await authClient.emailOtp.resetPassword({
-					email,
-					otp,
-					password
-				});
-				if (error) throw error;
+				const result = await authApi.resetPasswordWithOtp(email.trim(), otp, password);
+				if (!result.ok) {
+					fail(result.message);
+					return;
+				}
 			}
-			message = 'Password updated. Sign in with your new password.';
-			messageTone = 'success';
 			password = '';
 			confirmPassword = '';
 			otp = '';
 			setView('sign-in', { clearMessage: false });
+			show('Password updated. Sign in with your new password.', 'success');
 		} catch (err) {
-			fail(err);
+			fail(err instanceof Error ? err.message : 'Could not reset password.');
 		} finally {
 			pending = false;
 		}
 	}
 
-	async function onTwoFactor(e: Event) {
-		e.preventDefault();
+	async function onTwoFactor(e?: Event) {
+		e?.preventDefault();
+		if (pending) return;
 		pending = true;
-		message = '';
+		show('Verifying…', 'info');
 		try {
-			if (useBackup) {
-				const { error } = await authClient.twoFactor.verifyBackupCode({
-					code: backupCode,
-					trustDevice: true
-				});
-				if (error) throw error;
-			} else {
-				const { error } = await authClient.twoFactor.verifyTotp({
-					code: totpCode,
-					trustDevice: true
-				});
-				if (error) throw error;
+			const result = useBackup
+				? await authApi.verifyBackupCode(backupCode)
+				: await authApi.verifyTotp(totpCode);
+			if (!result.ok) {
+				fail(result.message);
+				return;
 			}
-			await goto(redirectTo);
+			show('Verified. Redirecting…', 'success');
+			window.location.assign(redirectTo);
 		} catch (err) {
-			fail(err);
+			fail(err instanceof Error ? err.message : '2FA verification failed.');
 		} finally {
 			pending = false;
 		}
 	}
 
-	async function onEnable2fa(e: Event) {
-		e.preventDefault();
+	async function onEnable2fa(e?: Event) {
+		e?.preventDefault();
+		if (pending) return;
 		pending = true;
-		message = '';
+		show('Generating setup…', 'info');
 		try {
-			const { data: result, error } = await authClient.twoFactor.enable({
-				password: setupPassword
-			});
-			if (error) throw error;
-			totpURI = result?.totpURI ?? '';
-			backupCodes = result?.backupCodes ?? [];
+			const result = await authApi.enableTwoFactor(setupPassword);
+			if (!result.ok) {
+				fail(result.message);
+				return;
+			}
+			totpURI = result.data?.totpURI ?? '';
+			backupCodes = result.data?.backupCodes ?? [];
 			setupStep = 'scan';
-			message = 'Scan the QR code, then enter a code from your app.';
-			messageTone = 'info';
+			show('Scan the QR code, then enter a code from your app.', 'info');
 		} catch (err) {
-			fail(err);
+			fail(err instanceof Error ? err.message : 'Could not enable 2FA.');
 		} finally {
 			pending = false;
 		}
 	}
 
-	async function onConfirm2fa(e: Event) {
-		e.preventDefault();
+	async function onConfirm2fa(e?: Event) {
+		e?.preventDefault();
+		if (pending) return;
 		pending = true;
-		message = '';
+		show('Confirming…', 'info');
 		try {
-			const { error } = await authClient.twoFactor.verifyTotp({
-				code: totpCode
-			});
-			if (error) throw error;
+			const result = await authApi.verifyTotp(totpCode, false);
+			if (!result.ok) {
+				fail(result.message);
+				return;
+			}
 			setupStep = 'done';
-			message = 'Two-factor authentication is on.';
-			messageTone = 'success';
+			show('Two-factor authentication is on.', 'success');
 		} catch (err) {
-			fail(err);
+			fail(err instanceof Error ? err.message : 'Could not confirm 2FA.');
 		} finally {
 			pending = false;
 		}
@@ -359,14 +413,29 @@
 			copied = true;
 			setTimeout(() => (copied = false), 2000);
 		} catch {
-			message = 'Could not copy — select the codes manually.';
-			messageTone = 'error';
+			fail('Could not copy — select the codes manually.');
 		}
+	}
+
+	function sanitizeOtp(e: Event) {
+		const el = e.currentTarget as HTMLInputElement;
+		const next = el.value.replace(/\D/g, '').slice(0, 6);
+		otp = next;
+		el.value = next;
+		if (next.length === 6 && !pending) void onVerifyOtp();
 	}
 
 	$effect(() => {
 		if (data.token) view = 'reset';
 		else if (data.view) view = data.view as View;
+	});
+
+	$effect(() => {
+		if (resendAvailableAt <= Date.now()) return;
+		const id = setInterval(() => {
+			cooldownNow = Date.now();
+		}, 250);
+		return () => clearInterval(id);
 	});
 </script>
 
@@ -374,7 +443,9 @@
 	<title>Auth · project12f</title>
 </svelte:head>
 
-<div class="auth-shell relative min-h-full overflow-hidden bg-base-100">
+<AuthToast text={message} tone={messageTone} onclose={() => (message = '')} />
+
+<div class="auth-shell relative min-h-screen overflow-hidden bg-base-100">
 	<div
 		class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(246,36,64,0.2),transparent_42%),radial-gradient(ellipse_at_bottom_right,rgba(40,50,80,0.35),transparent_48%)]"
 	></div>
@@ -385,7 +456,7 @@
 		class="pointer-events-none absolute -right-16 bottom-0 size-96 rounded-full bg-base-300/40 blur-3xl"
 	></div>
 
-	<div class="relative mx-auto grid min-h-[calc(100vh-8rem)] max-w-6xl lg:grid-cols-2">
+	<div class="relative mx-auto grid min-h-screen max-w-6xl lg:grid-cols-2">
 		<section
 			class="auth-brand relative hidden flex-col justify-between overflow-hidden border-r border-base-300/50 p-10 lg:flex"
 		>
@@ -438,7 +509,7 @@
 			</div>
 
 			<p class="relative z-10 text-xs text-base-content/45">
-				Dev tip: without SMTP, codes print in the server console.
+				OTP and reset codes are delivered to your email via SMTP.
 			</p>
 		</section>
 
@@ -456,9 +527,21 @@
 					</button>
 				{/if}
 
-				<div class="rounded-2xl border border-base-300/70 bg-base-100/85 p-6 shadow-xl backdrop-blur-md sm:p-8">
+				<div
+					class={[
+						'rounded-2xl border bg-base-100/85 p-6 shadow-xl backdrop-blur-md sm:p-8',
+						view === 'otp'
+							? 'border-primary/25 ring-1 ring-primary/15'
+							: 'border-base-300/70'
+					]}
+				>
 					<div class="mb-6 flex items-start gap-3">
-						<span class="rounded-box bg-primary/15 p-2.5 text-primary">
+						<span
+							class={[
+								'rounded-box p-2.5',
+								view === 'otp' ? 'bg-primary text-primary-content' : 'bg-primary/15 text-primary'
+							]}
+						>
 							<Icon class="size-5" />
 						</span>
 						<div>
@@ -470,24 +553,26 @@
 					{#if message}
 						<div
 							role="alert"
+							data-testid="auth-alert"
 							class={[
-								'alert mb-5 text-sm',
-								messageTone === 'error' && 'alert-error',
-								messageTone === 'success' && 'alert-success',
-								messageTone === 'info' && 'alert-info'
+								'mb-5 rounded-xl border px-4 py-3 text-sm font-medium',
+								messageTone === 'error' && 'border-red-400/50 bg-red-600 text-white',
+								messageTone === 'success' && 'border-emerald-400/50 bg-emerald-600 text-white',
+								messageTone === 'info' && 'border-sky-400/50 bg-sky-600 text-white'
 							]}
 						>
-							<span>{message}</span>
+							{message}
 						</div>
 					{/if}
 
 					{#if view === 'sign-in'}
-						<form class="space-y-3" onsubmit={onSignIn}>
+						<form class="space-y-3" novalidate onsubmit={(e) => void onSignIn(e)}>
 							<label class="input input-bordered flex w-full items-center gap-2">
-								<LucideMail class="size-4 opacity-50" />
+								<LucideMail class="size-4 shrink-0 opacity-50" />
 								<input
 									class="grow"
 									type="email"
+									name="email"
 									placeholder="Email"
 									required
 									autocomplete="email"
@@ -504,9 +589,15 @@
 									Forgot password?
 								</button>
 							</div>
-							<button class="btn btn-primary w-full" disabled={pending}>
+							<button
+								type="button"
+								class="btn btn-primary w-full"
+								disabled={pending}
+								aria-busy={pending}
+								onclick={() => void onSignIn()}
+							>
 								{#if pending}<span class="loading loading-spinner"></span>{/if}
-								Sign in
+								{pending ? 'Signing in…' : 'Sign in'}
 							</button>
 						</form>
 						<p class="mt-5 text-center text-sm text-base-content/70">
@@ -578,30 +669,57 @@
 							</button>
 						</form>
 					{:else if view === 'otp'}
-						<form class="space-y-4" onsubmit={onVerifyOtp}>
-							<p class="text-sm text-base-content/70">
-								Code sent to <span class="font-medium text-base-content">{email}</span>
-							</p>
-							<input
-								class="input input-bordered input-lg w-full text-center tracking-[0.4em]"
-								inputmode="numeric"
-								autocomplete="one-time-code"
-								maxlength="6"
-								placeholder="••••••"
-								required
-								bind:value={otp}
-							/>
+						<form class="space-y-6" onsubmit={onVerifyOtp}>
+							<div
+								class="rounded-box border border-base-300 bg-base-200/60 px-4 py-3 text-center"
+							>
+								<p class="text-[11px] font-semibold tracking-[0.14em] text-base-content/45 uppercase">
+									Code sent to
+								</p>
+								<p class="mt-1 truncate text-sm font-medium text-base-content">{email}</p>
+							</div>
+
+							<div class="flex flex-col items-center gap-3">
+								<label class="otp otp-primary otp-lg" aria-label="One-time verification code">
+									<span></span>
+									<span></span>
+									<span></span>
+									<span></span>
+									<span></span>
+									<span></span>
+									<input
+										type="text"
+										autocomplete="one-time-code"
+										inputmode="numeric"
+										maxlength="6"
+										pattern={'[0-9]{6}'}
+										required
+										value={otp}
+										oninput={sanitizeOtp}
+									/>
+								</label>
+								<p class="text-xs text-base-content/50">6-digit code · expires in 5 minutes</p>
+							</div>
+
 							<button class="btn btn-primary w-full" disabled={pending || otp.length < 6}>
 								{#if pending}<span class="loading loading-spinner"></span>{/if}
-								Verify code
+								Verify & continue
 							</button>
+
+							<div class="divider my-0 text-xs text-base-content/40">Didn’t get a code?</div>
+
 							<button
 								type="button"
-								class="btn btn-ghost btn-sm w-full"
-								disabled={pending}
+								class="btn btn-ghost btn-sm w-full gap-2"
+								disabled={!canResend}
 								onclick={onResendOtp}
 							>
-								Resend code
+								<LucideMail class="size-3.5 opacity-70" />
+								{#if resendSecondsLeft > 0}
+									Resend in {resendSecondsLeft}s
+								{:else}
+									Resend code
+								{/if}
 							</button>
 						</form>
 					{:else if view === 'reset'}
@@ -610,15 +728,26 @@
 								<p class="text-xs text-base-content/60">
 									Resetting password for <strong>{email}</strong>
 								</p>
-								<input
-									class="input input-bordered input-lg w-full text-center tracking-[0.4em]"
-									inputmode="numeric"
-									autocomplete="one-time-code"
-									maxlength="6"
-									placeholder="OTP code"
-									required
-									bind:value={otp}
-								/>
+								<div class="flex justify-center py-1">
+									<label class="otp otp-primary otp-md" aria-label="Password reset code">
+										<span></span>
+										<span></span>
+										<span></span>
+										<span></span>
+										<span></span>
+										<span></span>
+										<input
+											type="text"
+											autocomplete="one-time-code"
+											inputmode="numeric"
+											maxlength="6"
+											pattern={'[0-9]{6}'}
+											required
+											value={otp}
+											oninput={sanitizeOtp}
+										/>
+									</label>
+								</div>
 							{/if}
 							<PasswordInput
 								bind:value={password}
@@ -639,10 +768,14 @@
 								<button
 									type="button"
 									class="btn btn-ghost btn-sm w-full"
-									disabled={pending}
+									disabled={!canResend}
 									onclick={onResendOtp}
 								>
-									Resend code
+									{#if resendSecondsLeft > 0}
+										Resend in {resendSecondsLeft}s
+									{:else}
+										Resend code
+									{/if}
 								</button>
 							{/if}
 						</form>
@@ -668,15 +801,30 @@
 									bind:value={backupCode}
 								/>
 							{:else}
-								<input
-									class="input input-bordered input-lg w-full text-center tracking-[0.35em]"
-									inputmode="numeric"
-									autocomplete="one-time-code"
-									maxlength="6"
-									placeholder="000000"
-									required
-									bind:value={totpCode}
-								/>
+								<div class="flex justify-center py-1">
+									<label class="otp otp-primary otp-lg" aria-label="Authenticator code">
+										<span></span>
+										<span></span>
+										<span></span>
+										<span></span>
+										<span></span>
+										<span></span>
+										<input
+											type="text"
+											autocomplete="one-time-code"
+											inputmode="numeric"
+											maxlength="6"
+											pattern={'[0-9]{6}'}
+											required
+											value={totpCode}
+											oninput={(e) => {
+												const el = e.currentTarget;
+												totpCode = el.value.replace(/\D/g, '').slice(0, 6);
+												el.value = totpCode;
+											}}
+										/>
+									</label>
+								</div>
 							{/if}
 							<button class="btn btn-primary w-full" disabled={pending}>
 								{#if pending}<span class="loading loading-spinner"></span>{/if}
@@ -734,15 +882,30 @@
 											)}</pre>
 									</div>
 								{/if}
-								<input
-									class="input input-bordered input-lg w-full text-center tracking-[0.35em]"
-									inputmode="numeric"
-									autocomplete="one-time-code"
-									maxlength="6"
-									placeholder="000000"
-									required
-									bind:value={totpCode}
-								/>
+								<div class="flex justify-center py-1">
+									<label class="otp otp-primary otp-lg" aria-label="Confirm authenticator code">
+										<span></span>
+										<span></span>
+										<span></span>
+										<span></span>
+										<span></span>
+										<span></span>
+										<input
+											type="text"
+											autocomplete="one-time-code"
+											inputmode="numeric"
+											maxlength="6"
+											pattern={'[0-9]{6}'}
+											required
+											value={totpCode}
+											oninput={(e) => {
+												const el = e.currentTarget;
+												totpCode = el.value.replace(/\D/g, '').slice(0, 6);
+												el.value = totpCode;
+											}}
+										/>
+									</label>
+								</div>
 								<button class="btn btn-primary w-full" disabled={pending || totpCode.length < 6}>
 									{#if pending}<span class="loading loading-spinner"></span>{/if}
 									Confirm & enable
