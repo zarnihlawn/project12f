@@ -123,26 +123,30 @@
 				<div class="flex items-start max-sm:flex-col">
 					<ul class="menu w-full md:menu-horizontal">
 						<li>
-							<a href={resolve('/(service)/utilities/image')}
+							<a href={resolve('/(public)/(service)/utilities/image')}
 								>Images</a
 							>
 							<ul>
 								<li>
 									<a
 										href={resolve(
-											'/(service)/utilities/image/conversion',
+											'/(public)/(service)/utilities/image/conversion',
 										)}>Conversion</a
 									>
 								</li>
 								<li>
 									<a
 										href={resolve(
-											'/(service)/utilities/image/compression',
+											'/(public)/(service)/utilities/image/compression',
 										)}>Compression</a
 									>
 								</li>
 								<li>
-									<a href={resolve('/')}>Editor</a>
+									<a
+										href={resolve(
+											'/(public)/(service)/utilities/image/editor',
+										)}>Editor</a
+									>
 								</li>
 							</ul>
 						</li>
