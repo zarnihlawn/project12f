@@ -8,7 +8,8 @@
 
 	const isImmersive = $derived(
 		page.url.pathname.startsWith('/auth') ||
-			page.url.pathname.includes('/utilities/image/editor')
+			page.url.pathname.includes('/utilities/image/editor') ||
+			page.url.pathname.includes('/utilities/image/retouch')
 	);
 </script>
 
