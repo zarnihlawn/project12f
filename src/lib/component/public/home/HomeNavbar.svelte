@@ -217,6 +217,6 @@
 		</div>
 	</div>
 	<div class="navbar-end">
-		<button class="btn btn-primary"> Sign In </button>
+		<a href={resolve('/auth')} class="btn btn-primary">Sign In</a>
 	</div>
 </div>
